@@ -57,6 +57,20 @@ class LocatePayloadTests(unittest.TestCase):
         self.assertEqual(payload["perDeviceType"], "0")
 
 
+class ChargingCapabilityTests(unittest.TestCase):
+    def test_phone_has_charging(self):
+        from custom_components.huawei_find.helpers import supports_charging
+        self.assertTrue(supports_charging({"per_device_type": "0"}))
+
+    def test_shared_phone_has_charging(self):
+        from custom_components.huawei_find.helpers import supports_charging
+        self.assertTrue(supports_charging({"per_device_type": ""}))
+
+    def test_wearable_has_no_charging(self):
+        from custom_components.huawei_find.helpers import supports_charging
+        self.assertFalse(supports_charging({"per_device_type": "2"}))
+
+
 class RingCapabilityTests(unittest.TestCase):
     def test_phone_can_ring(self):
         self.assertTrue(supports_ring({"per_device_type": "0", "is_shared": False}))

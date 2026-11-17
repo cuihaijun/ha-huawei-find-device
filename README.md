@@ -89,7 +89,7 @@ demand, or make the phone ring.
 | `button.<device>_ring` | 让手机响铃（仅自有手机、30 秒冷却、需设备在线） |
 | `sensor.<device>_last_location` | 状态 = 地址；未配置地址源时才是 `纬度, 经度` |
 | `sensor.<device>_battery` | 电量（诊断类） |
-| `binary_sensor.<device>_charging` | 充电状态（诊断类） |
+| `binary_sensor.<device>_charging` | 充电状态（仅手机；手表/手环无此实体） |
 | `sensor.<device>_last_locate_status` | 上次定位状态：成功 / 过期 / 未知（诊断类） |
 | `device_tracker.<device>` | GPS 追踪器，可绑定 `person` |
 | 服务 `huawei_find.refresh` | 同「全部刷新」，等全部设备查完才返回 |
@@ -237,7 +237,7 @@ it into the integration setup, then pick the devices to track. Repeat for a seco
 ### Entities
 
 `button.*_refresh_all`, `button.*_refresh`, `button.*_ring`, `sensor.*_last_location`,
-`sensor.*_battery`, `binary_sensor.*_charging`, `sensor.*_last_locate_status`,
+`sensor.*_battery`, `binary_sensor.*_charging` (phones only), `sensor.*_last_locate_status`,
 `device_tracker.*`, plus the `huawei_find.refresh` and `huawei_find.set_cookie` services.
 
 ### Recommended settings

@@ -38,6 +38,11 @@ def signal_update(entry_id: str, device_id: str) -> str:
     return f"{DOMAIN}_update_{entry_id}_{device_id}"
 
 
+def supports_charging(device: dict[str, Any]) -> bool:
+    """Wearables do not report a charging flag, so they get no charging entity."""
+    return str(device.get("per_device_type") or "") != "2"
+
+
 def signal_account(entry_id: str) -> str:
     """Dispatcher signal for account-level state (hub button)."""
     return f"{DOMAIN}_account_{entry_id}"

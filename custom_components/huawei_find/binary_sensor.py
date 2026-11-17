@@ -9,12 +9,14 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import HuaweiFindRuntime, device_identifiers, signal_update
 from .const import DOMAIN
+from .helpers import supports_charging
 
 
 async def async_setup_entry(
@@ -23,9 +25,18 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     runtime: HuaweiFindRuntime = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        HuaweiChargingSensor(runtime, device) for device in runtime.devices.values()
-    )
+    registry = er.async_get(hass)
+    entities: list[HuaweiChargingSensor] = []
+    for device in runtime.devices.values():
+        if supports_charging(device):
+            entities.append(HuaweiChargingSensor(runtime, device))
+            continue
+        # Wearables never report charging: remove any entity left from older versions
+        unique_id = f"{DOMAIN}_{entry.entry_id}_{device['id']}_charging"
+        entity_id = registry.async_get_entity_id("binary_sensor", DOMAIN, unique_id)
+        if entity_id:
+            registry.async_remove(entity_id)
+    async_add_entities(entities)
 
 
 class HuaweiChargingSensor(BinarySensorEntity):
