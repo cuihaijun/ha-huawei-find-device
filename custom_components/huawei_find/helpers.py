@@ -27,10 +27,10 @@ def device_identifiers(entry_id: str, device_id: str) -> set[tuple[str, str]]:
 
 
 def supports_ring(device: dict[str, Any]) -> bool:
-    """Only phones on the account itself can be made to ring."""
+    """Own phones and wearables (watch/band) can be made to ring."""
     if device.get("is_shared"):
         return False
-    return str(device.get("per_device_type") or "") == "0"
+    return str(device.get("per_device_type") or "") in {"0", "2"}
 
 
 def signal_update(entry_id: str, device_id: str) -> str:

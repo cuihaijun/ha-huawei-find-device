@@ -37,7 +37,7 @@ demand, or make the phone ring.
 
 **找回手机**
 
-- 每台自有手机一个「响铃」按钮，触发最大音量警报，30 秒冷却，推送失败会自动重试一次；
+- 自有手机、手表、手环各一个「响铃」按钮，触发最大音量警报，30 秒冷却，推送失败会自动重试一次；
 - 只对本账号自己的手机有效：家人共享设备、手表、手环不支持。
 
 **自动化与维护**
@@ -161,7 +161,7 @@ mode: single
 
 ### 已知限制
 
-- 响铃只支持本账号自己的手机；家人共享设备、手表、手环都不支持；
+- 响铃只支持本账号自己的设备（手机/手表/手环）；家人共享的设备不支持；
 - 手表/手环也能定位，但需要设备在线；离线时查询会返回「设备不活跃」；
 - 返回的坐标可能是云端缓存，无法区分「刚刚上报」与「上次缓存」；
 - 地址反查依赖第三方服务，偶发超时会沿用上次地址并标记为已过期；
@@ -206,8 +206,8 @@ resulting position.
 
 **Finding a phone**
 
-- A "ring device" button per own phone (max-volume alarm, 30 s cooldown, one automatic retry);
-- Own phones only — shared devices, watches and bands are not supported.
+- A "ring device" button per own device — phone, watch or band (max-volume alarm, 30 s cooldown, one automatic retry);
+- Own devices only — family-shared devices are not supported.
 
 **Automation and maintenance**
 
@@ -248,7 +248,7 @@ makes it more likely to lose the session (and require pasting a new cookie).
 
 ### Known limitations
 
-- Ringing only works for phones on your own account, not for shared devices or wearables;
+- Ringing only works for your own devices (phones, watches, bands), not for shared ones;
 - Watches/bands can be located too when online; offline ones report "device inactive";
 - Returned coordinates may come from Huawei's cache;
 - Address lookup is best effort and falls back to the previous address;

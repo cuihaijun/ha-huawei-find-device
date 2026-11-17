@@ -61,8 +61,11 @@ class RingCapabilityTests(unittest.TestCase):
     def test_phone_can_ring(self):
         self.assertTrue(supports_ring({"per_device_type": "0", "is_shared": False}))
 
-    def test_watch_cannot_ring(self):
-        self.assertFalse(supports_ring({"per_device_type": "2", "is_shared": False}))
+    def test_watch_can_ring_when_owned(self):
+        self.assertTrue(supports_ring({"per_device_type": "2", "is_shared": False}))
+
+    def test_band_can_ring_when_owned(self):
+        self.assertTrue(supports_ring({"per_device_type": "2", "is_shared": False}))
 
     def test_shared_cannot_ring(self):
         self.assertFalse(supports_ring({"per_device_type": "0", "is_shared": True}))

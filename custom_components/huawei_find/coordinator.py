@@ -224,7 +224,7 @@ async def async_ring_device(
     if not supports_ring(device):
         return {
             "ok": False,
-            "error": "Ringing is only supported for phones on this account",
+            "error": "Ringing is only supported for your own phones and wearables",
         }
     elapsed = time.monotonic() - runtime.last_ring.get(device_id, 0.0)
     if elapsed < RING_COOLDOWN:
