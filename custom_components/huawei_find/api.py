@@ -174,16 +174,34 @@ def _json_dict(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _coords_to_wgs84(candidate: dict[str, Any]) -> tuple[float | None, float | None, str]:
+    """Convert one coordinate dict (sysType 1=WGS-84, 2=BD-09, else GCJ-02)."""
+    lat = _as_float(candidate.get("latitude"))
+    lng = _as_float(candidate.get("longitude"))
+    if lat is None or lng is None:
+        return None, None, ""
+    sys_type = str(candidate.get("sysType", ""))
+    if sys_type == "1":
+        return lng, lat, "wgs84"
+    if sys_type == "2":
+        glng, glat = bd09_to_gcj02(lng, lat)
+        wlng, wlat = gcj02_to_wgs84(glng, glat)
+        return wlng, wlat, "bd09"
+    wlng, wlat = gcj02_to_wgs84(lng, lat)
+    return wlng, wlat, "gcj02"
+
+
 def _parse_locate_info(payload: dict[str, Any]) -> dict[str, Any] | None:
     """Extract WGS-84 coordinates, battery and accuracy from queryLocateResult."""
     locate_info = _json_dict(payload.get("locateInfo"))
-    if not locate_info:
-        return None
     coord = _json_dict(locate_info.get("coordinateInfo"))
 
     lat: float | None = None
     lng: float | None = None
     coord_sys = ""
+    accuracy: Any = None
+    device_time: Any = None
+    battery_status = _json_dict(locate_info.get("batteryStatus"))
 
     top_lat_wgs = _as_float(locate_info.get("latitude_WGS"))
     top_lng_wgs = _as_float(locate_info.get("longitude_WGS"))
@@ -195,16 +213,7 @@ def _parse_locate_info(payload: dict[str, Any]) -> dict[str, Any] | None:
     if top_lat_wgs is not None and top_lng_wgs is not None:
         lng, lat, coord_sys = top_lng_wgs, top_lat_wgs, "wgs84"
     elif coord_lat is not None and coord_lng is not None:
-        sys_type = str(coord.get("sysType", ""))
-        if sys_type == "1":  # WGS-84
-            lng, lat, coord_sys = coord_lng, coord_lat, "wgs84"
-        elif sys_type == "2":  # BD-09
-            glng, glat = bd09_to_gcj02(coord_lng, coord_lat)
-            lng, lat = gcj02_to_wgs84(glng, glat)
-            coord_sys = "bd09"
-        else:  # default GCJ-02
-            lng, lat = gcj02_to_wgs84(coord_lng, coord_lat)
-            coord_sys = "gcj02"
+        lng, lat, coord_sys = _coords_to_wgs84(coord)
     elif top_lat is not None and top_lng is not None:
         # Verified against latitude_WGS: the top-level fields are BD-09.
         glng, glat = bd09_to_gcj02(top_lng, top_lat)
@@ -212,9 +221,41 @@ def _parse_locate_info(payload: dict[str, Any]) -> dict[str, Any] | None:
         coord_sys = "bd09"
 
     if lat is None or lng is None:
+        # Watches/bands return the result in cptLocateInfoList instead.
+        candidates: list[tuple[dict[str, Any], dict[str, Any]]] = []
+        for entry in payload.get("cptLocateInfoList") or []:
+            entry_dict = _json_dict(entry)
+            for raw in entry_dict.get("coordinateInfoList") or []:
+                candidate = _json_dict(raw)
+                if _as_float(candidate.get("latitude")) is not None:
+                    candidates.append((candidate, entry_dict))
+        chosen = next(
+            ((c, e) for c, e in candidates if str(c.get("sysType")) == "1"),
+            candidates[0] if candidates else None,
+        )
+        if chosen is not None:
+            candidate, entry_dict = chosen
+            lng, lat, coord_sys = _coords_to_wgs84(candidate)
+            accuracy = candidate.get("accuracy")
+            device_time = candidate.get("time")
+            battery_status = _json_dict(entry_dict.get("batteryStatus")) or battery_status
+
+    if lat is None or lng is None:
         return None
 
-    battery_status = _json_dict(locate_info.get("batteryStatus"))
+    if accuracy is None:
+        accuracy = coord.get("accuracy")
+    if accuracy is None:
+        accuracy = locate_info.get("accuracy")
+    if device_time is None:
+        device_time = (
+            coord.get("time")
+            or coord.get("currentTime")
+            or locate_info.get("executeTime")
+            or locate_info.get("locateTime")
+            or locate_info.get("updateTime")
+        )
+
     battery = locate_info.get("battery")
     if battery in (None, "", 0, "0"):
         battery = battery_status.get("percentage")
@@ -222,23 +263,10 @@ def _parse_locate_info(payload: dict[str, Any]) -> dict[str, Any] | None:
     charging = battery_status.get("isCharging")
     charging = str(charging) == "1" if charging is not None else None
 
-    accuracy = coord.get("accuracy")
-    if accuracy is None:
-        accuracy = locate_info.get("accuracy")
-    accuracy_f = _as_float(accuracy)
-
-    device_time = (
-        coord.get("time")
-        or coord.get("currentTime")
-        or locate_info.get("executeTime")
-        or locate_info.get("locateTime")
-        or locate_info.get("updateTime")
-    )
-
     return {
         "latitude": round(lat, 6),
         "longitude": round(lng, 6),
-        "accuracy": accuracy_f,
+        "accuracy": _as_float(accuracy),
         "battery": int(battery_f) if battery_f is not None else None,
         "battery_charging": charging,
         "screen_locked": str(locate_info.get("isLockScreen")) == "1"
@@ -516,7 +544,7 @@ class HuaweiFindClient:
         payload = {
             "deviceType": device.get("device_type") or 9,
             "deviceId": device["id"],
-            "perDeviceType": "0",
+            "perDeviceType": str(device.get("per_device_type") or "0"),
             "cptList": "",
             "traceId": trace_id(),
         }
@@ -530,7 +558,7 @@ class HuaweiFindClient:
             "traceId": trace_id(),
             "deviceId": device["id"],
             "deviceType": device.get("device_type") or 9,
-            "perDeviceType": "0",
+            "perDeviceType": str(device.get("per_device_type") or "0"),
             "cptList": "",
         }
         if device.get("is_shared"):
@@ -543,7 +571,7 @@ class HuaweiFindClient:
             "traceId": trace_id(),
             "deviceId": device["id"],
             "deviceType": device.get("device_type") or 9,
-            "perDeviceType": "0",
+            "perDeviceType": str(device.get("per_device_type") or "0"),
             "sequence": sequence,
             "presetDevice": False,
         }

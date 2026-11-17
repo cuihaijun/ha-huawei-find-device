@@ -42,6 +42,21 @@ def _runtime(ring_result=True):
     )
 
 
+class LocatePayloadTests(unittest.TestCase):
+    def test_watch_payload_uses_its_own_per_device_type(self):
+        client = HuaweiFindClient("A=1")
+        payload = client._locate_payload(
+            {"id": "d1", "device_type": -1, "per_device_type": "2"}
+        )
+        self.assertEqual(payload["perDeviceType"], "2")
+        self.assertEqual(payload["deviceType"], -1)
+
+    def test_phone_payload_defaults_to_zero(self):
+        client = HuaweiFindClient("A=1")
+        payload = client._locate_payload({"id": "d1", "device_type": 9})
+        self.assertEqual(payload["perDeviceType"], "0")
+
+
 class RingCapabilityTests(unittest.TestCase):
     def test_phone_can_ring(self):
         self.assertTrue(supports_ring({"per_device_type": "0", "is_shared": False}))
