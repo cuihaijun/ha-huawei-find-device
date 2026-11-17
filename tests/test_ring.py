@@ -70,6 +70,10 @@ class ChargingCapabilityTests(unittest.TestCase):
         from custom_components.huawei_find.helpers import supports_charging
         self.assertFalse(supports_charging({"per_device_type": "2"}))
 
+    def test_earbuds_have_no_charging(self):
+        from custom_components.huawei_find.helpers import supports_charging
+        self.assertFalse(supports_charging({"per_device_type": "1"}))
+
 
 class RingCapabilityTests(unittest.TestCase):
     def test_phone_can_ring(self):

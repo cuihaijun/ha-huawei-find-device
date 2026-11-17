@@ -39,8 +39,9 @@ def signal_update(entry_id: str, device_id: str) -> str:
 
 
 def supports_charging(device: dict[str, Any]) -> bool:
-    """Wearables do not report a charging flag, so they get no charging entity."""
-    return str(device.get("per_device_type") or "") != "2"
+    """Only phones report a charging flag; wearables and earbuds do not."""
+    per_type = str(device.get("per_device_type") or "")
+    return per_type not in {"1", "2"}
 
 
 def signal_account(entry_id: str) -> str:
